@@ -1,0 +1,4 @@
+thing1 2 $199
+thing2 1 $20
+thing3 1 $85
+thing4 5 $15

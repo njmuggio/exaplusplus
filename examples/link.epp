@@ -1,0 +1,31 @@
+.range -9999 9999
+
+.node Home
+.node Limited 2
+.node Unlimited
+
+.home Home
+
+.link (Home 800) (Limited -1)
+.link (Home 801) (Unlimited -1)
+
+.start LINK_TEST
+link 800
+@rep 10
+noop
+@end
+link -1
+
+.start LINK_TEST2
+link 801
+
+.start LINK_TEST3
+link 800
+mark lp
+jump lp
+
+.start LINK_TEST4
+noop
+noop
+link 800
+kill

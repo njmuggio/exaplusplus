@@ -1,0 +1,24 @@
+.range -999999 999999
+.node Home
+.home Home
+
+.start MANIP_TEST
+
+addi 10 2 X
+dump me
+subi X 3 X
+dump me
+muli X 2 T
+dump me
+divi T 5 X
+dump me
+modi X 2 T
+dump me
+copy 123456 X
+dump me
+swiz X 135 T
+dump me
+make
+file f
+copy x f
+copy t f

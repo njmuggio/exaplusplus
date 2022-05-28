@@ -1,0 +1,133 @@
+.range -9999 9999
+
+.node Outbox 6
+.node Inbox
+.node Home 20
+
+.home Home
+
+.link (Outbox -1) (Inbox 799)
+.link (Outbox -2) (Home)
+.link (Home 801) (Inbox -1)
+
+.file "words.txt" Inbox 301 rw word noint
+.file "receipt.txt" Outbox 302 ro word int locked
+.file "secret.txt" Home 300 ro byte int
+
+.reg sink #NERV Home
+;.reg lua #BEAN Outbox "level_check.lua"
+.reg file_out #MOTR Home "motor_commands.txt"
+.reg rand #EYES Home 123456780
+.reg file_in #NOSE Home "scents.txt"
+.reg stdin #STDI Home
+.reg stdout #STDO Home
+.reg stderr #STDE Home
+
+.start MANIP_TEST
+
+@reP 5
+copy @{1,2} X
+addi 1 t t
+@ENd
+
+halt
+addi 10 2 X
+dump me
+subi X 3 X
+dump me
+muli X 2 T
+dump me
+divi T 5 X
+dump me
+modi X 2 T
+dump me
+copy 123456 X
+dump me
+swiz X 113355 T
+dump me
+
+.start HW_REG_TEST
+
+halt
+copy 65 #STDO
+copy 97 #STDE
+copy #STDI #STDO
+
+.start BRANCHES
+
+halt
+copy 0 T
+tjmp NOPE
+addi 1 x x
+fjmp yes_1
+addi -1 x x
+
+mark YES_1
+copy 1 T
+fjmp NOPE
+addi 1 x x
+tjmp yes_2
+addi -1 x x
+
+mark yes_2
+grab 300
+test eof
+tjmp nope
+addi 1 x x
+fjmp yes_3
+addi -1 x x
+
+mark yes_3
+seek 9999
+test eof
+fjmp nope
+addi 1 x x
+tjmp yes_4
+addi -1 x x
+
+mark yes_4
+test 1 < 2
+fjmp nope
+addi 1 x x
+tjmp yes_5
+addi -1 x x
+
+mark yes_5
+test 1 > 2
+tjmp nope
+addi 1 x x
+fjmp yes_6
+addi -1 x x
+
+mark yes_6
+test 1 = 1
+fjmp nope
+addi 1 x x
+fjmp yes_7
+addi -1 x x
+
+mark yes_7
+repl m_checker
+noop
+test mrd
+fjmp nope
+addi 1 x x
+tjmp yes_8
+addi -1 x x
+
+mark yes_8
+test mrd
+tjmp nope
+addi 1 x x
+fjmp yes_9
+addi -1 x x
+
+mark yes_9
+halt
+
+mark m_checker
+copy 0 m
+halt
+
+mark NOPE
+halt
