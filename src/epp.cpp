@@ -6,9 +6,9 @@
 #include <regex>
 #include <sstream>
 
-#include "ep.hpp"
+#include "epp.hpp"
 
-namespace ep
+namespace epp
 {
 std::ostream& operator<<(std::ostream& rStream, const Value& val)
 {
@@ -511,14 +511,7 @@ std::ostream& operator<<(std::ostream& s, const Machine& m)
     s << "<none>";
   }
 
-  s << "; instPtr=" << m.instPtr << "; code={";
-
-  for (const auto& inst : m.code)
-  {
-    s << inst << "; ";
-  }
-
-  s << "}}";
+  s << "; instPtr=" << m.instPtr << '}';
 
   return s;
 }
@@ -690,10 +683,16 @@ RunStats Network::run()
       for (auto& rpMachine : rNode.machines)
       {
         bool advance = true;
-        const Instruction& inst = rpMachine->code[rpMachine->instPtr];
 
         try
         {
+          if (rpMachine->instPtr >= rpMachine->code.size())
+          {
+            throw MachineFailure("No more instructions");
+          }
+
+          const Instruction& inst = rpMachine->code[rpMachine->instPtr];
+
           switch (inst.opcode)
           {
             case Instruction::Opcode::Copy:
@@ -892,7 +891,7 @@ RunStats Network::run()
 
               if (rNode.machines.size() > 1)
               {
-                std::uniform_int_distribution<size_t> dist(0, rNode.machines.size() - 1);
+                std::uniform_int_distribution<size_t> dist(0, rNode.machines.size() - 2);
                 size_t target = dist(random);
 
                 int curIdx = 0;
@@ -937,11 +936,9 @@ RunStats Network::run()
                 }
                 else
                 {
-                  iter->second.get().incomingMachines.emplace_back(std::make_unique<Machine>());
-                  iter->second.get().incomingMachines.back()->terminated = true;
-                  
+                  stats.activity++;
                   rpMachine->instPtr++;
-                  rpMachine.swap(iter->second.get().incomingMachines.back());
+                  iter->second.get().incomingMachines.emplace_back(std::move(rpMachine));
                 }
               }
               else
@@ -1163,6 +1160,22 @@ RunStats Network::run()
               {
                 std::cout << *rpMachine << '\n';
               }
+              else if (s == "code")
+              {
+                std::cout << "Code:[";
+
+                for (size_t i = 0; i < rpMachine->code.size(); i++)
+                {
+                  std::cout << rpMachine->code[i];
+
+                  if (i < rpMachine->code.size() - 1)
+                  {
+                    std::cout << "; ";
+                  }
+                }
+
+                std::cout << "]\n";
+              }
               else
               {
                 throw Error("Unrecognized dump argument: " + s);
@@ -1175,23 +1188,18 @@ RunStats Network::run()
         catch (const MachineFailure& e)
         {
           rpMachine->terminated = true;
-          std::cerr << e.what() << '\n';
+          std::cerr << rpMachine->name << ": " << e.what() << '\n';
         }
 
-        if (advance)
+        if (advance && rpMachine)
         {
           rpMachine->instPtr++;
-        }
-
-        if (rpMachine->instPtr >= rpMachine->code.size())
-        {
-          rpMachine->terminated = true;
         }
       }
 
       for (auto& rpMachine : rNode.machines)
       {
-        if (!rpMachine->terminated)
+        if (!rpMachine || !rpMachine->terminated)
         {
           continue;
         }
@@ -1206,7 +1214,7 @@ RunStats Network::run()
       auto endIter = std::remove_if(rNode.machines.begin(), rNode.machines.end(),
         [&](const std::unique_ptr<Machine>& pMachine)
         {
-          return pMachine->terminated;
+          return !pMachine || pMachine->terminated;
         });
 
       rNode.machines.erase(endIter, rNode.machines.end());

@@ -1,8 +1,8 @@
-﻿add_executable(ep)
+﻿add_executable(epp)
 target_sources(
-	ep PRIVATE
-	ep.cpp
-	ep.hpp
+	epp PRIVATE
+	epp.cpp
+	epp.hpp
 
 	main.cpp
 )

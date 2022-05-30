@@ -22,6 +22,7 @@ link 801
 .start LINK_TEST3
 link 800
 mark lp
+dump code
 jump lp
 
 .start LINK_TEST4

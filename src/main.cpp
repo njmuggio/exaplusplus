@@ -1,9 +1,9 @@
 #include <chrono>
 #include <iostream>
 
-#include "ep.hpp"
+#include "epp.hpp"
 
-using namespace ep;
+using namespace epp;
 
 int main(int argc, char** pArgv)
 {

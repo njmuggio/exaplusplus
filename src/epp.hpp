@@ -1,5 +1,5 @@
-#ifndef EP_HPP
-#define EP_HPP
+#ifndef EPP_HPP
+#define EPP_HPP
 
 #include <algorithm>
 #include <filesystem>
@@ -13,7 +13,7 @@
 #include <variant>
 #include <vector>
 
-namespace ep
+namespace epp
 {
 struct Error : public std::runtime_error
 {
@@ -315,6 +315,6 @@ private:
 
   RunStats stats;
 };
-} // namespace ep
+} // namespace epp
 
-#endif // EP_HPP
+#endif // EPP_HPP
