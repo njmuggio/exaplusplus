@@ -44,6 +44,8 @@ struct HwRegister
 {
   HwRegister(const std::string& name, Node* pNode);
 
+  virtual ~HwRegister() = default;
+
   virtual void write(const Value& val);
 
   virtual Value read();
@@ -63,6 +65,8 @@ struct StdoutRegister : public HwRegister
 struct StderrRegister : public HwRegister
 {
   using HwRegister::HwRegister;
+
+
 
   void write(const Value& val) override;
 };
