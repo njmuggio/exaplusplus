@@ -8,6 +8,12 @@
 
 #include "epp.hpp"
 
+/*
+* TODO
+* - HW registers should take up space in nodes
+* - M register write shouldn't be readable until the next cycle
+*/
+
 namespace epp
 {
 std::ostream& operator<<(std::ostream& rStream, const Value& val)
@@ -389,6 +395,11 @@ void File::initFromDisk(bool readBytes, bool parseInts)
       Value val;
       std::string s;
       stream >> s;
+      if (s.empty())
+      {
+        continue;
+      }
+
       val = s;
 
       if (parseInts)
@@ -411,6 +422,11 @@ void File::initFromDisk(bool readBytes, bool parseInts)
 
 void File::writeToDisk()
 {
+  if (readonly)
+  {
+    return;
+  }
+
   std::ofstream stream(filename);
 
   for (const auto& val : values)
@@ -543,7 +559,9 @@ bool Channel::available() const
 
 std::optional<Value> Channel::receive()
 {
-  return val;
+  std::optional<Value> ret;
+  ret.swap(val);
+  return ret;
 }
 
 bool Node::operator==(const std::string& str)

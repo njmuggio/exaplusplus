@@ -1,0 +1,27 @@
+.range -999999 999999
+.node Home
+.home Home
+
+.file "300.txt" Home 300 ro word int
+
+.start MANIP_TEST
+
+grab 300
+repl bot
+mark loop
+    dump me
+    muli f -1 m
+    test eof
+    copy t m
+    fjmp loop
+halt
+
+mark bot
+make
+mark botloop
+    subi m 5 f
+    copy m t
+    fjmp botloop
+dump me
+drop
+dump me
