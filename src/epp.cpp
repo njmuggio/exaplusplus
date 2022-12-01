@@ -103,10 +103,10 @@ bool operator<(const Value& left, const Value& right)
     return false;
   }
 
-  return std::visit([&](const auto& arg)
+  return std::visit([&](const auto& leftArg, const auto& rightArg)
     {
-      return arg < right;
-    }, left);
+      return leftArg < rightArg;
+    }, left, right);
 }
 
 bool operator==(const Value& left, const Value& right)
@@ -116,10 +116,10 @@ bool operator==(const Value& left, const Value& right)
     return false;
   }
 
-  return std::visit([&](const auto& arg)
+  return std::visit([&](const auto& leftArg, const auto& rightArg)
     {
-      return arg == right;
-    }, left);
+      return leftArg == rightArg;
+    }, left, right);
 }
 
 bool operator>(const Value& left, const Value& right)
@@ -129,10 +129,10 @@ bool operator>(const Value& left, const Value& right)
     return false;
   }
 
-  return std::visit([&](const auto& arg)
+  return std::visit([&](const auto& leftArg, const auto& rightArg)
     {
-      return arg > right;
-    }, left);
+      return leftArg > rightArg;
+    }, left, right);
 }
 
 HwRegister::HwRegister(const std::string& name, Node* pNode)
@@ -913,7 +913,7 @@ RunStats Network::run()
                 size_t target = dist(random);
 
                 int curIdx = 0;
-                for (auto& rpTarget: rNode.machines)
+                for (auto& rpTarget : rNode.machines)
                 {
                   if (rpTarget == rpMachine)
                   {
@@ -925,6 +925,8 @@ RunStats Network::run()
                     rpTarget->terminated = true;
                     break;
                   }
+
+                  curIdx += 1;
                 }
               }
               
@@ -1038,6 +1040,7 @@ RunStats Network::run()
                   }
 
                   rpMachine->file.emplace(std::move(iter->second));
+                  rpMachine->file->offset = 0;
 
                   rNode.files.erase(iter);
                 }
@@ -1075,7 +1078,20 @@ RunStats Network::run()
                 {
                   if (std::holds_alternative<Number>(*offset))
                   {
-                    rpMachine->file->offset += std::get<Number>(*offset);
+                    Number val = std::get<Number>(*offset);
+                    if (val < 0 && size_t(-val) > rpMachine->file->offset)
+                    {
+                      rpMachine->file->offset = 0;
+                    }
+                    else
+                    {
+                      rpMachine->file->offset += std::get<Number>(*offset);
+                    }
+
+                    if (rpMachine->file->offset > rpMachine->file->values.size())
+                    {
+                      rpMachine->file->offset = rpMachine->file->values.size();
+                    }
                   }
                   else
                   {
