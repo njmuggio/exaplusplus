@@ -209,6 +209,7 @@ struct Machine
   std::string name;
   Value x;
   Value t;
+  std::optional<Value> outM;
   std::optional<File> file;
   std::vector<Instruction> code;
   size_t instPtr = 0;

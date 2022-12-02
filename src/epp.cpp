@@ -704,518 +704,529 @@ RunStats Network::run()
 
         try
         {
-          if (rpMachine->instPtr >= rpMachine->code.size())
+          if (rpMachine->outM.has_value())
           {
-            throw MachineFailure("No more instructions");
+            advance = set(rNode, *rpMachine, Instruction::Register::M, rpMachine->outM.value());
+            if (advance)
+            {
+              rpMachine->outM.reset();
+            }
           }
-
-          const Instruction& inst = rpMachine->code[rpMachine->instPtr];
-
-          switch (inst.opcode)
+          else
           {
-            case Instruction::Opcode::Copy:
+            if (rpMachine->instPtr >= rpMachine->code.size())
             {
-              std::optional<Value> val = get(rNode, *rpMachine, inst.op1);
-              advance = val.has_value() && set(rNode, *rpMachine, inst.op2, val.value());
-              break;
+              throw MachineFailure("No more instructions");
             }
-            case Instruction::Opcode::Addi:
-            {
-              std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
-              advance = left && right && set(rNode, *rpMachine, inst.op3, *left + *right);
-              break;
-            }
-            case Instruction::Opcode::Subi:
-            {
-              std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
-              advance = left && right && set(rNode, *rpMachine, inst.op3, *left - *right);
-              break;
-            }
-            case Instruction::Opcode::Muli:
-            {
-              std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
-              advance = left && right && set(rNode, *rpMachine, inst.op3, *left * *right);
-              break;
-            }
-            case Instruction::Opcode::Divi:
-            {
-              std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
-              advance = left && right && set(rNode, *rpMachine, inst.op3, *left / *right);
-              break;
-            }
-            case Instruction::Opcode::Modi:
-            {
-              std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
-              advance = left && right && set(rNode, *rpMachine, inst.op3, *left % *right);
-              break;
-            }
-            case Instruction::Opcode::Swiz:
-            {
-              std::optional<Value> input = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> mask = get(rNode, *rpMachine, inst.op2);
 
-              if (input && mask)
-              {
-                Value swizzed = swiz(*input, *mask);
-                advance = set(rNode, *rpMachine, inst.op3, swizzed);
-              }
-              else
-              {
-                advance = false;
-              }
+            const Instruction& inst = rpMachine->code[rpMachine->instPtr];
 
-              break;
-            }
-            case Instruction::Opcode::Jump:
+            switch (inst.opcode)
             {
-              if (std::holds_alternative<Instruction::Address>(inst.op1))
+              case Instruction::Opcode::Copy:
               {
-                rpMachine->instPtr = std::get<Instruction::Address>(inst.op1);
-                advance = false;
+                std::optional<Value> val = get(rNode, *rpMachine, inst.op1);
+                advance = val.has_value() && set(rNode, *rpMachine, inst.op2, val.value());
+                break;
               }
-              else
+              case Instruction::Opcode::Addi:
               {
-                throw Error("Jump address is incorrect type");
+                std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
+                advance = left && right && set(rNode, *rpMachine, inst.op3, *left + *right);
+                break;
               }
+              case Instruction::Opcode::Subi:
+              {
+                std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
+                advance = left && right && set(rNode, *rpMachine, inst.op3, *left - *right);
+                break;
+              }
+              case Instruction::Opcode::Muli:
+              {
+                std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
+                advance = left && right && set(rNode, *rpMachine, inst.op3, *left * *right);
+                break;
+              }
+              case Instruction::Opcode::Divi:
+              {
+                std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
+                advance = left && right && set(rNode, *rpMachine, inst.op3, *left / *right);
+                break;
+              }
+              case Instruction::Opcode::Modi:
+              {
+                std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
+                advance = left && right && set(rNode, *rpMachine, inst.op3, *left % *right);
+                break;
+              }
+              case Instruction::Opcode::Swiz:
+              {
+                std::optional<Value> input = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> mask = get(rNode, *rpMachine, inst.op2);
 
-              break;
-            }
-            case Instruction::Opcode::Tjmp:
-            {
-              if (std::holds_alternative<Instruction::Address>(inst.op1))
+                if (input && mask)
+                {
+                  Value swizzed = swiz(*input, *mask);
+                  advance = set(rNode, *rpMachine, inst.op3, swizzed);
+                }
+                else
+                {
+                  advance = false;
+                }
+
+                break;
+              }
+              case Instruction::Opcode::Jump:
               {
-                if (std::holds_alternative<std::string>(rpMachine->t) || (std::holds_alternative<Number>(rpMachine->t) && std::get<Number>(rpMachine->t) != 0))
+                if (std::holds_alternative<Instruction::Address>(inst.op1))
                 {
                   rpMachine->instPtr = std::get<Instruction::Address>(inst.op1);
                   advance = false;
                 }
-              }
-              else
-              {
-                throw Error("Jump address is incorrect type");
-              }
-
-              break;
-            }
-            case Instruction::Opcode::Fjmp:
-            {
-              if (std::holds_alternative<Instruction::Address>(inst.op1))
-              {
-                if (std::holds_alternative<Number>(rpMachine->t) && std::get<Number>(rpMachine->t) == 0)
+                else
                 {
-                  rpMachine->instPtr = std::get<Instruction::Address>(inst.op1);
-                  advance = false;
+                  throw Error("Jump address is incorrect type");
                 }
-              }
-              else
-              {
-                throw Error("Jump address is incorrect type");
-              }
 
-              break;
-            }
-            case Instruction::Opcode::Test1:
-            {
-              if (!std::holds_alternative<Instruction::Register>(inst.op1))
-              {
-                throw Error("Test EOF/MRD does not reference register");
+                break;
               }
-
-              Instruction::Register reg = std::get<Instruction::Register>(inst.op1);
-
-              if (reg == Instruction::Register::M)
+              case Instruction::Opcode::Tjmp:
               {
-                Channel* pChannel = rpMachine->globalMode ? &globalChannel : &rNode.localChannel;
-                rpMachine->t = pChannel->available() ? 1 : 0;
-              }
-              else if (reg == Instruction::Register::F)
-              {
-                if (rpMachine->file.has_value())
+                if (std::holds_alternative<Instruction::Address>(inst.op1))
                 {
-                  rpMachine->t = rpMachine->file->eof() ? 1 : 0;
+                  if (std::holds_alternative<std::string>(rpMachine->t) || (std::holds_alternative<Number>(rpMachine->t) && std::get<Number>(rpMachine->t) != 0))
+                  {
+                    rpMachine->instPtr = std::get<Instruction::Address>(inst.op1);
+                    advance = false;
+                  }
                 }
                 else
                 {
-                  throw MachineFailure("Tried to check for EOF, but no file held");
+                  throw Error("Jump address is incorrect type");
                 }
-              }
-              else
-              {
-                throw Error("Test EOF/MRD references invalid register");
-              }
 
-              break;
-            }
-            case Instruction::Opcode::TestEq:
-            {
-              std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
-
-              if (left && right)
-              {
-                rpMachine->t = *left == *right ? 1 : 0;
+                break;
               }
-              else
+              case Instruction::Opcode::Fjmp:
               {
-                advance = false;
-              }
-
-              break;
-            }
-            case Instruction::Opcode::TestGt:
-            {
-              std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
-
-              if (left && right)
-              {
-                rpMachine->t = *left > *right ? 1 : 0;
-              }
-              else
-              {
-                advance = false;
-              }
-
-              break;
-            }
-            case Instruction::Opcode::TestLt:
-            {
-              std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
-              std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
-
-              if (left && right)
-              {
-                rpMachine->t = *left < *right ? 1 : 0;
-              }
-              else
-              {
-                advance = false;
-              }
-              break;
-            }
-            case Instruction::Opcode::Halt:
-            {
-              throw MachineFailure("Halted");
-              break;
-            }
-            case Instruction::Opcode::Kill:
-            {
-              stats.activity++;
-
-              if (rNode.machines.size() > 1)
-              {
-                std::uniform_int_distribution<size_t> dist(0, rNode.machines.size() - 2);
-                size_t target = dist(random);
-
-                int curIdx = 0;
-                for (auto& rpTarget : rNode.machines)
+                if (std::holds_alternative<Instruction::Address>(inst.op1))
                 {
-                  if (rpTarget == rpMachine)
+                  if (std::holds_alternative<Number>(rpMachine->t) && std::get<Number>(rpMachine->t) == 0)
                   {
-                    curIdx--;
+                    rpMachine->instPtr = std::get<Instruction::Address>(inst.op1);
+                    advance = false;
                   }
-
-                  if (curIdx == target)
-                  {
-                    rpTarget->terminated = true;
-                    break;
-                  }
-
-                  curIdx += 1;
                 }
+                else
+                {
+                  throw Error("Jump address is incorrect type");
+                }
+
+                break;
               }
-              
-              break;
-            }
-            case Instruction::Opcode::Link:
-            {
-              std::optional<Value> dest = get(rNode, *rpMachine, inst.op1);
-
-              if (dest)
+              case Instruction::Opcode::Test1:
               {
-                if (!std::holds_alternative<Number>(*dest))
+                if (!std::holds_alternative<Instruction::Register>(inst.op1))
                 {
-                  throw MachineFailure("Cannot link to a string");
+                  throw Error("Test EOF/MRD does not reference register");
                 }
 
-                auto iter = rNode.links.find(static_cast<uint16_t>(std::get<Number>(inst.op1)));
+                Instruction::Register reg = std::get<Instruction::Register>(inst.op1);
 
-                if (iter == rNode.links.end())
+                if (reg == Instruction::Register::M)
                 {
-                  throw MachineFailure("Link does not exist");
+                  Channel* pChannel = rpMachine->globalMode ? &globalChannel : &rNode.localChannel;
+                  rpMachine->t = pChannel->available() ? 1 : 0;
+                }
+                else if (reg == Instruction::Register::F)
+                {
+                  if (rpMachine->file.has_value())
+                  {
+                    rpMachine->t = rpMachine->file->eof() ? 1 : 0;
+                  }
+                  else
+                  {
+                    throw MachineFailure("Tried to check for EOF, but no file held");
+                  }
+                }
+                else
+                {
+                  throw Error("Test EOF/MRD references invalid register");
                 }
 
-                if (iter->second.get().full())
+                break;
+              }
+              case Instruction::Opcode::TestEq:
+              {
+                std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
+
+                if (left && right)
+                {
+                  rpMachine->t = *left == *right ? 1 : 0;
+                }
+                else
                 {
                   advance = false;
                 }
-                else
+
+                break;
+              }
+              case Instruction::Opcode::TestGt:
+              {
+                std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
+
+                if (left && right)
                 {
-                  stats.activity++;
-                  rpMachine->instPtr++;
-                  iter->second.get().incomingMachines.emplace_back(std::move(rpMachine));
-                }
-              }
-              else
-              {
-                advance = false;
-              }
-
-              break;
-            }
-            case Instruction::Opcode::Host:
-            {
-              advance = set(rNode, *rpMachine, inst.op1, rNode.name);
-              break;
-            }
-            case Instruction::Opcode::Mode:
-            {
-              rpMachine->globalMode = !rpMachine->globalMode;
-              break;
-            }
-            case Instruction::Opcode::Void:
-            {
-              if (!std::holds_alternative<Instruction::Register>(inst.op1))
-              {
-                throw Error("Void does not reference register");
-              }
-
-              Instruction::Register reg = std::get<Instruction::Register>(inst.op1);
-
-              if (reg == Instruction::Register::M)
-              {
-                std::optional<Value> discard = get(rNode, *rpMachine, inst.op1);
-                advance = discard.has_value();
-              }
-              else if (reg == Instruction::Register::F)
-              {
-                // Voiding past EOF kills exa
-                if (rpMachine->file.has_value())
-                {
-                  rpMachine->file->voidCurrent();
+                  rpMachine->t = *left > *right ? 1 : 0;
                 }
                 else
                 {
-                  throw MachineFailure("Tried to void file, but no file held");
+                  advance = false;
                 }
+
+                break;
               }
-              else
+              case Instruction::Opcode::TestLt:
               {
-                throw Error("Void references invalid register");
-              }
+                std::optional<Value> left = get(rNode, *rpMachine, inst.op1);
+                std::optional<Value> right = get(rNode, *rpMachine, inst.op2);
 
-              break;
-            }
-            case Instruction::Opcode::Make:
-            {
-              if (rpMachine->file.has_value())
-              {
-                throw MachineFailure("Tried to make, but already holding file");
-              }
-
-              rpMachine->file = File();
-              rpMachine->file->id = nextFileId++;
-              rpMachine->file->filename = std::to_string(rpMachine->file->id) + ".txt";
-
-              break;
-            }
-            case Instruction::Opcode::Grab:
-            {
-              std::optional<Value> fileId = get(rNode, *rpMachine, inst.op1);
-
-              if (fileId)
-              {
-                if (std::holds_alternative<Number>(*fileId))
+                if (left && right)
                 {
-                  auto iter = rNode.files.find(static_cast<uint16_t>(std::get<Number>(fileId.value())));
+                  rpMachine->t = *left < *right ? 1 : 0;
+                }
+                else
+                {
+                  advance = false;
+                }
+                break;
+              }
+              case Instruction::Opcode::Halt:
+              {
+                throw MachineFailure("Halted");
+                break;
+              }
+              case Instruction::Opcode::Kill:
+              {
+                stats.activity++;
 
-                  if (iter == rNode.files.end())
+                if (rNode.machines.size() > 1)
+                {
+                  std::uniform_int_distribution<size_t> dist(0, rNode.machines.size() - 2);
+                  size_t target = dist(random);
+
+                  int curIdx = 0;
+                  for (auto& rpTarget : rNode.machines)
                   {
-                    throw MachineFailure("Tried to grab nonexistent file");
-                  }
-
-                  rpMachine->file.emplace(std::move(iter->second));
-                  rpMachine->file->offset = 0;
-
-                  rNode.files.erase(iter);
-                }
-                else
-                {
-                  throw MachineFailure("Tried to grab file with string name");
-                }
-              }
-              else
-              {
-                advance = false;
-              }
-
-              break;
-            }
-            case Instruction::Opcode::File:
-            {
-              if (rpMachine->file)
-              {
-                advance = set(rNode, *rpMachine, inst.op1, rpMachine->file->id);
-              }
-              else
-              {
-                throw MachineFailure("Cannot get file ID: no file held");
-              }
-
-              break;
-            }
-            case Instruction::Opcode::Seek:
-            {
-              if (rpMachine->file)
-              {
-                std::optional<Value> offset = get(rNode, *rpMachine, inst.op1);
-                if (offset)
-                {
-                  if (std::holds_alternative<Number>(*offset))
-                  {
-                    Number val = std::get<Number>(*offset);
-                    if (val < 0 && size_t(-val) > rpMachine->file->offset)
+                    if (rpTarget == rpMachine)
                     {
-                      rpMachine->file->offset = 0;
+                      curIdx--;
+                    }
+
+                    if (curIdx == target)
+                    {
+                      rpTarget->terminated = true;
+                      break;
+                    }
+
+                    curIdx += 1;
+                  }
+                }
+
+                break;
+              }
+              case Instruction::Opcode::Link:
+              {
+                std::optional<Value> dest = get(rNode, *rpMachine, inst.op1);
+
+                if (dest)
+                {
+                  if (!std::holds_alternative<Number>(*dest))
+                  {
+                    throw MachineFailure("Cannot link to a string");
+                  }
+
+                  auto iter = rNode.links.find(static_cast<uint16_t>(std::get<Number>(inst.op1)));
+
+                  if (iter == rNode.links.end())
+                  {
+                    throw MachineFailure("Link does not exist");
+                  }
+
+                  if (iter->second.get().full())
+                  {
+                    advance = false;
+                  }
+                  else
+                  {
+                    stats.activity++;
+                    rpMachine->instPtr++;
+                    iter->second.get().incomingMachines.emplace_back(std::move(rpMachine));
+                  }
+                }
+                else
+                {
+                  advance = false;
+                }
+
+                break;
+              }
+              case Instruction::Opcode::Host:
+              {
+                advance = set(rNode, *rpMachine, inst.op1, rNode.name);
+                break;
+              }
+              case Instruction::Opcode::Mode:
+              {
+                rpMachine->globalMode = !rpMachine->globalMode;
+                break;
+              }
+              case Instruction::Opcode::Void:
+              {
+                if (!std::holds_alternative<Instruction::Register>(inst.op1))
+                {
+                  throw Error("Void does not reference register");
+                }
+
+                Instruction::Register reg = std::get<Instruction::Register>(inst.op1);
+
+                if (reg == Instruction::Register::M)
+                {
+                  std::optional<Value> discard = get(rNode, *rpMachine, inst.op1);
+                  advance = discard.has_value();
+                }
+                else if (reg == Instruction::Register::F)
+                {
+                  // Voiding past EOF kills exa
+                  if (rpMachine->file.has_value())
+                  {
+                    rpMachine->file->voidCurrent();
+                  }
+                  else
+                  {
+                    throw MachineFailure("Tried to void file, but no file held");
+                  }
+                }
+                else
+                {
+                  throw Error("Void references invalid register");
+                }
+
+                break;
+              }
+              case Instruction::Opcode::Make:
+              {
+                if (rpMachine->file.has_value())
+                {
+                  throw MachineFailure("Tried to make, but already holding file");
+                }
+
+                rpMachine->file = File();
+                rpMachine->file->id = nextFileId++;
+                rpMachine->file->filename = std::to_string(rpMachine->file->id) + ".txt";
+
+                break;
+              }
+              case Instruction::Opcode::Grab:
+              {
+                std::optional<Value> fileId = get(rNode, *rpMachine, inst.op1);
+
+                if (fileId)
+                {
+                  if (std::holds_alternative<Number>(*fileId))
+                  {
+                    auto iter = rNode.files.find(static_cast<uint16_t>(std::get<Number>(fileId.value())));
+
+                    if (iter == rNode.files.end())
+                    {
+                      throw MachineFailure("Tried to grab nonexistent file");
+                    }
+
+                    rpMachine->file.emplace(std::move(iter->second));
+                    rpMachine->file->offset = 0;
+
+                    rNode.files.erase(iter);
+                  }
+                  else
+                  {
+                    throw MachineFailure("Tried to grab file with string name");
+                  }
+                }
+                else
+                {
+                  advance = false;
+                }
+
+                break;
+              }
+              case Instruction::Opcode::File:
+              {
+                if (rpMachine->file)
+                {
+                  advance = set(rNode, *rpMachine, inst.op1, rpMachine->file->id);
+                }
+                else
+                {
+                  throw MachineFailure("Cannot get file ID: no file held");
+                }
+
+                break;
+              }
+              case Instruction::Opcode::Seek:
+              {
+                if (rpMachine->file)
+                {
+                  std::optional<Value> offset = get(rNode, *rpMachine, inst.op1);
+                  if (offset)
+                  {
+                    if (std::holds_alternative<Number>(*offset))
+                    {
+                      Number val = std::get<Number>(*offset);
+                      if (val < 0 && size_t(-val) > rpMachine->file->offset)
+                      {
+                        rpMachine->file->offset = 0;
+                      }
+                      else
+                      {
+                        rpMachine->file->offset += std::get<Number>(*offset);
+                      }
+
+                      if (rpMachine->file->offset > rpMachine->file->values.size())
+                      {
+                        rpMachine->file->offset = rpMachine->file->values.size();
+                      }
                     }
                     else
                     {
-                      rpMachine->file->offset += std::get<Number>(*offset);
-                    }
-
-                    if (rpMachine->file->offset > rpMachine->file->values.size())
-                    {
-                      rpMachine->file->offset = rpMachine->file->values.size();
+                      throw MachineFailure("Cannot seek: offset is a string");
                     }
                   }
                   else
                   {
-                    throw MachineFailure("Cannot seek: offset is a string");
+                    advance = false;
                   }
                 }
                 else
                 {
-                  advance = false;
+                  throw MachineFailure("Cannot seek: no file held");
                 }
-              }
-              else
-              {
-                throw MachineFailure("Cannot seek: no file held");
-              }
 
-              break;
-            }
-            case Instruction::Opcode::Drop:
-            {
-              if (rpMachine->file)
+                break;
+              }
+              case Instruction::Opcode::Drop:
               {
+                if (rpMachine->file)
+                {
+                  if (!rNode.full())
+                  {
+                    uint16_t id = rpMachine->file->id;
+                    rNode.files.emplace(id, std::move(*rpMachine->file));
+                    rpMachine->file.reset();
+                  }
+                  else
+                  {
+                    advance = false;
+                  }
+                }
+                else
+                {
+                  throw MachineFailure("Cannot drop: no file held");
+                }
+
+                break;
+              }
+              case Instruction::Opcode::Wipe:
+              {
+                if (rpMachine->file)
+                {
+                  rpMachine->file->wipe();
+                }
+                else
+                {
+                  throw MachineFailure("Cannot wipe: no file held");
+                }
+
+                break;
+              }
+              case Instruction::Opcode::Noop:
+              {
+                // Do nothing
+                break;
+              }
+              case Instruction::Opcode::Rand:
+              {
+                uint64_t bits = random();
+                int64_t val = 0;
+                std::memcpy(&val, &bits, sizeof(val));
+                advance = set(rNode, *rpMachine, inst.op1, val);
+                break;
+              }
+              case Instruction::Opcode::Repl:
+              {
+                if (!std::holds_alternative<Instruction::Address>(inst.op1))
+                {
+                  throw Error("Repl did not refer to code address");
+                }
+
                 if (!rNode.full())
                 {
-                  uint16_t id = rpMachine->file->id;
-                  rNode.files.emplace(id, std::move(*rpMachine->file));
-                  rpMachine->file.reset();
+                  rNode.incomingMachines.emplace_back(rpMachine->repl(std::get<Instruction::Address>(inst.op1)));
                 }
                 else
                 {
                   advance = false;
                 }
-              }
-              else
-              {
-                throw MachineFailure("Cannot drop: no file held");
-              }
 
-              break;
-            }
-            case Instruction::Opcode::Wipe:
-            {
-              if (rpMachine->file)
-              {
-                rpMachine->file->wipe();
+                break;
               }
-              else
+              case Instruction::Opcode::Dump0:
               {
-                throw MachineFailure("Cannot wipe: no file held");
+                std::cout << *this << '\n';
+                break;
               }
-
-              break;
-            }
-            case Instruction::Opcode::Noop:
-            {
-              // Do nothing
-              break;
-            }
-            case Instruction::Opcode::Rand:
-            {
-              uint64_t bits = random();
-              int64_t val = 0;
-              std::memcpy(&val, &bits, sizeof(val));
-              advance = set(rNode, *rpMachine, inst.op1, val);
-              break;
-            }
-            case Instruction::Opcode::Repl:
-            {
-              if (!std::holds_alternative<Instruction::Address>(inst.op1))
+              case Instruction::Opcode::Dump1:
               {
-                throw Error("Repl did not refer to code address");
-              }
-
-              if (!rNode.full())
-              {
-                rNode.incomingMachines.emplace_back(rpMachine->repl(std::get<Instruction::Address>(inst.op1)));
-              }
-              else
-              {
-                advance = false;
-              }
-
-              break;
-            }
-            case Instruction::Opcode::Dump0:
-            {
-              std::cout << *this << '\n';
-              break;
-            }
-            case Instruction::Opcode::Dump1:
-            {
-              if (!std::holds_alternative<std::string>(inst.op1))
-              {
-                throw Error("Dump did not have string param");
-              }
-
-              std::string s(std::get<std::string>(inst.op1));
-
-              if (s == "me")
-              {
-                std::cout << *rpMachine << '\n';
-              }
-              else if (s == "code")
-              {
-                std::cout << "Code:[";
-
-                for (size_t i = 0; i < rpMachine->code.size(); i++)
+                if (!std::holds_alternative<std::string>(inst.op1))
                 {
-                  std::cout << rpMachine->code[i];
-
-                  if (i < rpMachine->code.size() - 1)
-                  {
-                    std::cout << "; ";
-                  }
+                  throw Error("Dump did not have string param");
                 }
 
-                std::cout << "]\n";
-              }
-              else
-              {
-                throw Error("Unrecognized dump argument: " + s);
-              }
+                std::string s(std::get<std::string>(inst.op1));
 
-              break;
+                if (s == "me")
+                {
+                  std::cout << *rpMachine << '\n';
+                }
+                else if (s == "code")
+                {
+                  std::cout << "Code:[";
+
+                  for (size_t i = 0; i < rpMachine->code.size(); i++)
+                  {
+                    std::cout << rpMachine->code[i];
+
+                    if (i < rpMachine->code.size() - 1)
+                    {
+                      std::cout << "; ";
+                    }
+                  }
+
+                  std::cout << "]\n";
+                }
+                else
+                {
+                  throw Error("Unrecognized dump argument: " + s);
+                }
+
+                break;
+              }
             }
           }
         }
@@ -1950,6 +1961,7 @@ bool Network::set(Node& rNode, Machine& rMachine, const Instruction::Operand& de
               if (globalChannel.available())
               {
                 ret = false;
+                rMachine.outM = val;
               }
               else
               {
@@ -1961,6 +1973,7 @@ bool Network::set(Node& rNode, Machine& rMachine, const Instruction::Operand& de
               if (rNode.localChannel.available())
               {
                 ret = false;
+                rMachine.outM = val;
               }
               else
               {
