@@ -618,14 +618,21 @@ Network::Network(const std::filesystem::path& path)
     }
 
     size_t firstValid = 0;
+    bool anyValid = false;
 
     for (size_t i = 0; i < line.size(); i++)
     {
       if (!std::isblank(line[i]))
       {
         firstValid = i;
+        anyValid = true;
         break;
       }
+    }
+
+    if (!anyValid)
+    {
+      continue;
     }
 
     if (firstValid > 0)
